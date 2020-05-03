@@ -1,10 +1,11 @@
 from LINGO import LINGO
 import pandas as pd
 
-data = pd.read_csv('../data/kegg_compound_strings.tsv')
-
-smiles = ['Clc(c(Cl)c(Cl)c1C(=O)O)c(Cl)c1Cl','CC(=O)O','CC(C)(C)O',\
-          'C(C(CO[N+](=O)[O-])O[N+](=O)[O-])O[N+](=O)[O-]'] 
-
+kegg_data = pd.read_csv('../data/kegg_compound_strings.tsv',sep='\t')
+ref_data = pd.read_csv('../data/reference_compound_strings.tsv',sep='\t')
+met_ref= "135409352"
+smiles = ['C1=C(N=C2C(=O)NC(=NC2=N1)N)C=O'] 
+#'https://pubchem.ncbi.nlm.nih.gov/compound/6-Formylpterin#section=InChI-Key'
 l = LINGO()
 l.add_smiles(smiles[0])
+ref_data[ref_data['Pubchem-id']==135409352]
