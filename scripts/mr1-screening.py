@@ -1,18 +1,19 @@
 from LINGO import LINGO
 import pandas as pd
 import re
-#'https://pubchem.ncbi.nlm.nih.gov/compound/6-Formylpterin#section=InChI-Key'
+import numpy as np
+import matplotlib.pyplot as plt
 
 kegg_data = pd.read_csv('../data/kegg_compound_strings.tsv',sep='\t')
 ref_data = pd.read_csv('../data/reference_compound_strings.tsv',sep='\t')
 old_ref_data = pd.read_csv('../data/old_reference_compound_strings.tsv',sep='\t')
+
 #%% Drop NaN values and molecules with SMILES that have less or equal to 5 char
 kegg_data.dropna(inplace=True)
 kegg_data['len_SMILEs'] = kegg_data['Canonical-SMILES'].apply(lambda x: len(x))
 kegg_data = kegg_data[kegg_data['len_SMILEs']>5]
 kegg_data['len_SMILEs'].hist(bins=100)
 kegg_data.drop(['len_SMILEs'],axis=1,inplace=True)
-
 
 #%% Find chemical elements with two characters
 
@@ -98,13 +99,61 @@ def tanimoto(smiles1, smiles2, q = 4):
     
     Tc = SUM/l
     return Tc    
-        
+
+def getSchiffBase(smiles):
+    SchiffBase = re.findall('CN=C',smiles)
+    return SchiffBase
+#%% Calculate Tanimoto scores between well known reference compunds (old_ref_data) 
+# and kegg database
+    
 q = 4
-smiles1 = "C1=C(N=C2C(=O)NC(=NC2=N1)N)C=O"
-smiles2 = "C1=C(N=C2C(=O)CN(=NC2=N1)N)C=O"
-Tc = tanimoto(smiles1,smiles2)
 
-Tc_scores=[tanimoto(smiles1,smiles2) for smiles2 in kegg_data['Canonical-SMILES'].values]
+Tc_scores = np.zeros((len(old_ref_data),len(kegg_data))) 
+old_ref_molecules = old_ref_data['Canonical-SMILES'].values
+kegg_molecules = kegg_data['Canonical-SMILES'].values
 
-ref_data.loc[196,'Canonical-SMILES']
+for row in range(len(old_ref_molecules)):
+    for col in range(row,len(kegg_molecules)):
+        Tc_scores[row][col] = tanimoto(old_ref_molecules[row],kegg_molecules[col])
+
+# Check the tanimoto score's distribution
+
+all_Tc_scores = []
+
+for row in range(len(old_ref_molecules)):
+    for col in range(row,len(kegg_molecules)):
+        if Tc_scores[row][col]>0.5:
+            all_Tc_scores.append(Tc_scores[row][col])
+
+plt.hist(all_Tc_scores,bins=100)
+
+# Get only the molecule's pubchme-ids for tanimoto scores >5
+
+relevant_Tc_scores = []
+ref_list = []
+kegg_list = []
+
+for row in range(len(old_ref_molecules)):
+    for col in range(row,len(kegg_molecules)):
+        if Tc_scores[row][col]>0.5:
+            relevant_Tc_scores.append(Tc_scores[row][col])
+            print(row,col)
+            pubchem_id_ref = old_ref_data[old_ref_data['Canonical-SMILES'] == old_ref_molecules[row]]['Pubchem-id'].values[0]
+            pubchem_id_kegg = kegg_data[kegg_data['Canonical-SMILES'] == kegg_molecules[col]]['Pubchem-id'].values[0]
+            ref_list.append(pubchem_id_ref)
+            kegg_list.append(pubchem_id_kegg)
+
+# Create DataFrame with the similar Pubchem-id molecules and the corresponding
+# Tanimoto score            
+
+ref_kegg_Tanimoto = pd.DataFrame({'Pubchem-id_ref':ref_list,\
+                                  'Pubchem-id_kegg':kegg_list,\
+                                  'Tanimoto_score':relevant_Tc_scores})
+
+
+ref_kegg_Tanimoto.to_csv('../data/ref_kegg_Tanimoto.tsv',sep='\t',index=False)
+
+
+
+
 
