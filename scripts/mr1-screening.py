@@ -156,4 +156,25 @@ ref_kegg_Tanimoto.to_csv('../data/ref_kegg_Tanimoto.tsv',sep='\t',index=False)
 
 
 
+# Create a function that finds Schiff bases in the SMILES string
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
