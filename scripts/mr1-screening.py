@@ -132,31 +132,47 @@ plt.hist(all_Tc_scores,bins=100)
 relevant_Tc_scores = []
 ref_list = []
 kegg_list = []
+is_ket_or_ald = []
 
 for row in range(len(old_ref_molecules)):
     for col in range(row,len(kegg_molecules)):
+        # Filter out molecules with Tc score less than 0.5
         if Tc_scores[row][col]>0.5:
             relevant_Tc_scores.append(Tc_scores[row][col])
-            print(row,col)
             pubchem_id_ref = old_ref_data[old_ref_data['Canonical-SMILES'] == old_ref_molecules[row]]['Pubchem-id'].values[0]
             pubchem_id_kegg = kegg_data[kegg_data['Canonical-SMILES'] == kegg_molecules[col]]['Pubchem-id'].values[0]
             ref_list.append(pubchem_id_ref)
             kegg_list.append(pubchem_id_kegg)
+            
+            # Detect ketone or aldehyde
+            smiles = kegg_molecules[row]
+            temp_list = re.findall('(\(=O\)|C=O)', smiles)
+            if temp_list != []:
+                is_ket_or_ald.append(1)
+            else:
+                is_ket_or_ald.append(0)
 
 # Create DataFrame with the similar Pubchem-id molecules and the corresponding
 # Tanimoto score            
 
+
 ref_kegg_Tanimoto = pd.DataFrame({'Pubchem-id_ref':ref_list,\
                                   'Pubchem-id_kegg':kegg_list,\
-                                  'Tanimoto_score':relevant_Tc_scores})
+                                  'Tanimoto_score':relevant_Tc_scores,
+                                  'Is_ket_or_ald':is_ket_or_ald})
 
-
+'''
 ref_kegg_Tanimoto.to_csv('../data/ref_kegg_Tanimoto.tsv',sep='\t',index=False)
+'''
 
+# Create a function that finds double bonds with N and carbon (an indicator of a plausible
+# double bond.
 
+for smiles in old_ref_molecules:
+    print(re.findall('(\(=O\)|C=O)',smiles))
+    print(smiles)
+    
 
-
-# Create a function that finds Schiff bases in the SMILES string
 
 
 
