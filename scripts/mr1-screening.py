@@ -178,9 +178,6 @@ ref_kegg_Tanimoto = pd.DataFrame({'Pubchem-id_ref':ref_pubchemid,
                                   'Tanimoto_score':relevant_Tc_scores,\
                                   'Is_ket_or_ald':is_ket_or_ald})
 
-
-# ref_kegg_Tanimoto.to_csv('../data/ref_kegg_Tanimoto_tsh-'+ str(threshold) +'.tsv',sep='\t',index=False)
-
 #%% Find what kegg compounds found in the previous step are human compounds
 
 # 1. Read all KEGG compounds
@@ -211,9 +208,10 @@ for compound in kegg_compounds[171:]:
 
 kegg_compounds.index(compound)                     
 #%% Add an indicator of human compounds to the ref_kegg_tanimoto table
-                                           
+ref_kegg_Tanimoto['Human_compound'] = ref_kegg_Tanimoto['Kegg-id_kegg'].apply(lambda x: 1 if x in human_metabolites else 0)
                      
-                
+ref_kegg_Tanimoto.to_csv('../data/ref_kegg_Tanimoto_tsh-'+ str(threshold) +'.tsv',sep='\t',index=False)
+               
         
 
         
