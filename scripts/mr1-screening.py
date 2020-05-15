@@ -1,4 +1,4 @@
-from LINGO import LINGO
+#from LINGO import LINGO
 import pandas as pd
 import re
 import numpy as np
@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 kegg_data = pd.read_csv('../data/kegg_compound_strings.tsv',sep='\t')
 ref_data = pd.read_csv('../data/reference_compound_strings.tsv',sep='\t')
 old_ref_data = pd.read_csv('../data/old_reference_compound_strings.tsv',sep='\t')
+kegg_ids = pd.read_csv('../tables/kegg_compounds.tsv',sep='\t')
 
 #%% Drop NaN values and molecules with SMILES that have less or equal to 5 char
 kegg_data.dropna(inplace=True)
@@ -127,22 +128,35 @@ for row in range(len(old_ref_molecules)):
 
 plt.hist(all_Tc_scores,bins=100)
 
-# Get only the molecule's pubchme-ids for tanimoto scores >5
+#%% Get only the molecule's pubchme-ids for tanimoto scores >trheshold
+threshold = 0.4
 
-relevant_Tc_scores = []
-ref_list = []
-kegg_list = []
-is_ket_or_ald = []
+relevant_Tc_scores = [] #Tc_scores above threshold
+# Pubchem-ids of old_ref_data molecules and kegg_data molecules with Tc above threshold
+ref_pubchemid = [] 
+kegg_pubchemid = []
+# Kegg-ids of old_ref_data molecules and kegg_data molecules with Tc above threshold
+ref_keggid = [] 
+kegg_keggid = []  
+is_ket_or_ald = [] # indicates if the molecule from the kegg database has at least one ketone or aldehyde
 
 for row in range(len(old_ref_molecules)):
     for col in range(row,len(kegg_molecules)):
-        # Filter out molecules with Tc score less than 0.5
-        if Tc_scores[row][col]>0.5:
+        # Filter out molecules with Tc score less than threshold
+        if Tc_scores[row][col] > threshold:
             relevant_Tc_scores.append(Tc_scores[row][col])
+            
             pubchem_id_ref = old_ref_data[old_ref_data['Canonical-SMILES'] == old_ref_molecules[row]]['Pubchem-id'].values[0]
             pubchem_id_kegg = kegg_data[kegg_data['Canonical-SMILES'] == kegg_molecules[col]]['Pubchem-id'].values[0]
-            ref_list.append(pubchem_id_ref)
-            kegg_list.append(pubchem_id_kegg)
+            ref_pubchemid.append(pubchem_id_ref)
+            kegg_pubchemid.append(pubchem_id_kegg)
+            try:
+                kegg_id_ref = kegg_ids[kegg_ids['Pubchem-id'] == pubchem_id_ref]['Kegg-id'].values[0][4:]
+            except:
+                kegg_id_ref = 'not available'
+            kegg_id_kegg = kegg_ids[kegg_ids['Pubchem-id'] == pubchem_id_kegg]['Kegg-id'].values[0][4:]
+            ref_keggid.append(kegg_id_ref)
+            kegg_keggid.append(kegg_id_kegg)
             
             # Detect ketone or aldehyde
             smiles = kegg_molecules[row]
@@ -152,26 +166,23 @@ for row in range(len(old_ref_molecules)):
             else:
                 is_ket_or_ald.append(0)
 
-# Create DataFrame with the similar Pubchem-id molecules and the corresponding
-# Tanimoto score            
 
+#%% Create DataFrame with the similar Pubchem-id and Kegg-id molecules and the corresponding
+# Tc score            
 
-ref_kegg_Tanimoto = pd.DataFrame({'Pubchem-id_ref':ref_list,\
-                                  'Pubchem-id_kegg':kegg_list,\
-                                  'Tanimoto_score':relevant_Tc_scores,
+ref_kegg_Tanimoto = pd.DataFrame({'Pubchem-id_ref':ref_pubchemid,
+                                  'Kegg-id_ref':ref_keggid,\
+                                  'Pubchem-id_kegg':kegg_pubchemid,\
+                                  'Kegg-id_kegg': kegg_keggid, \
+                                  'Tanimoto_score':relevant_Tc_scores,\
                                   'Is_ket_or_ald':is_ket_or_ald})
 
-'''
-ref_kegg_Tanimoto.to_csv('../data/ref_kegg_Tanimoto.tsv',sep='\t',index=False)
-'''
 
-# Create a function that finds double bonds with N and carbon (an indicator of a plausible
-# double bond.
+ref_kegg_Tanimoto.to_csv('../data/ref_kegg_Tanimoto_tsh-'+ str(threshold) +'.tsv',sep='\t',index=False)
 
-for smiles in old_ref_molecules:
-    print(re.findall('(\(=O\)|C=O)',smiles))
-    print(smiles)
-    
+
+
+
 
 
 
