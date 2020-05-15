@@ -3,6 +3,7 @@ import pandas as pd
 import re
 import numpy as np
 import matplotlib.pyplot as plt
+from Bio.KEGG import REST
 
 kegg_data = pd.read_csv('../data/kegg_compound_strings.tsv',sep='\t')
 ref_data = pd.read_csv('../data/reference_compound_strings.tsv',sep='\t')
@@ -178,19 +179,44 @@ ref_kegg_Tanimoto = pd.DataFrame({'Pubchem-id_ref':ref_pubchemid,
                                   'Is_ket_or_ald':is_ket_or_ald})
 
 
-ref_kegg_Tanimoto.to_csv('../data/ref_kegg_Tanimoto_tsh-'+ str(threshold) +'.tsv',sep='\t',index=False)
+# ref_kegg_Tanimoto.to_csv('../data/ref_kegg_Tanimoto_tsh-'+ str(threshold) +'.tsv',sep='\t',index=False)
 
+#%% Find what kegg compounds found in the previous step are human compounds
 
+# 1. Read all KEGG compounds
+#compounds = REST.kegg_list('compound').read()
 
+kegg_compounds = list(ref_kegg_Tanimoto['Kegg-id_kegg'].values)
 
+human_metabolites = []
 
+for compound in kegg_compounds[171:]:
+    # 2. Access each compound table
+    compound_table = REST.kegg_get(compound).read()
+    if 'ENZYME' in compound_table or 'Enzyme' in compound_table:
+        # 3. If the table contains a row for ENZYMES, find all enzymes
+        all_enzymes = re.findall(r'[0-9]{1,2}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}',compound_table)
+        if all_enzymes != []:
+            for enzyme in all_enzymes:
+                try:
+                    # 4. Access each enzyme table
+                    enzyme_table = REST.kegg_get(enzyme).read()
+                except:
+                    enzyme_table = []
+                    # 5. Check if at least one enzyme was encoded by a human gene
+                if 'HSA:' in enzyme_table:
+                    human_metabolites.append(compound)
+                    print(compound)
+                    break
 
+kegg_compounds.index(compound)                     
+#%% Add an indicator of human compounds to the ref_kegg_tanimoto table
+                                           
+                     
+                
+        
 
-
-
-
-
-
+        
 
 
 
