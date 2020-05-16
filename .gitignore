@@ -6,7 +6,7 @@
 # Custom
 .vscode/
 .DS_Store
-
+*.ipynb_checkpoints/
 # User-specific files
 *.rsuser
 *.suo
